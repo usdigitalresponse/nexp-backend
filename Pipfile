@@ -1,0 +1,25 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+boto3 = "*"
+black = "*"
+
+[packages]
+airtable-python-wrapper = "*"
+sendgrid = "*"
+cached-property = "*"
+pytz = "*"
+python-dateutil = "*"
+xlsxwriter = "*"
+
+[requires]
+python_version = "3.8"
+
+[scripts]
+cli = "python cli"
+
+[pipenv]
+allow_prereleases = true

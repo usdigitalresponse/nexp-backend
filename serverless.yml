@@ -1,0 +1,121 @@
+service: nexp-backend
+
+custom:
+  stage: ${opt:stage, env:STAGE, "dev"}
+  region: us-west-2
+
+  prune:
+    automatic: true
+    number: 10
+
+  pythonRequirements:
+    dockerizePip: true
+    slim: true
+    layer: true
+    useDownloadCache: false
+    useStaticCache: false
+
+  config:
+    bucket: usdr.${self:custom.stage}.healthworkconnect
+    deploys: usdr.deploy-artifacts
+
+provider:
+  name: aws
+  runtime: python3.8
+
+  logRetentionInDays: 14
+
+  deploymentBucket:
+    name: ${self:custom.config.deploys}
+    blockPublicAccess: true
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: DataBucket
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::"
+            - Ref: DataBucket
+            - "/*"
+
+  environment:
+    S3_BUCKET: ${self:custom.config.bucket}
+    S3_PREFIX: la
+    AIRTABLE_BASE_ID: ${ssm:/nexp/${self:custom.stage}/airtable/base-id~true}
+    AIRTABLE_API_KEY: ${ssm:/nexp/${self:custom.stage}/airtable/api-key~true}
+    SENDGRID_API_KEY: ${ssm:/nexp/shared/sendgrid/api-key~true}
+
+package:
+  excludeDevDependencies: true
+  exclude:
+    - ".pytest_cache/**"
+    - "node_modules/**"
+    - ".vscode/**"
+    - ".serverless/**"
+
+layers:
+  sqlite:
+    path: layer
+
+functions:
+  send-candidate-lists:
+    name: nexp-${self:custom.stage}-send-candidate-lists
+    handler: handlers.send_candidates_lists
+    timeout: 900
+    package:
+      exclude:
+        - "layer/**"
+        - ".pytest_cache/**"
+        - "node_modules/**"
+        - ".vscode/**"
+        - ".serverless/**"
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+      - { Ref: SqliteLambdaLayer }
+
+  send-needs-requests:
+    name: nexp-${self:custom.stage}-send-needs-requests
+    handler: handlers.send_needs_requests
+    timeout: 900
+    package:
+      exclude:
+        - "layer/**"
+        - ".pytest_cache/**"
+        - "node_modules/**"
+        - ".vscode/**"
+        - ".serverless/**"
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+      - { Ref: SqliteLambdaLayer }
+
+resources:
+  Resources:
+    DataBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.config.bucket}
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders: ["*"]
+              AllowedMethods: [GET]
+              AllowedOrigins: ["*"]
+              Id: AllowGet
+              MaxAge: "3600"
+
+plugins:
+  - serverless-python-requirements
+  - serverless-prune-plugin

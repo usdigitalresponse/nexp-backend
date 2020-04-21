@@ -1,0 +1,9 @@
+#!/bin/bash -x
+
+set -e
+
+rm -rf layer && mkdir -p layer/python
+docker build -t py38-sqlite-builder -f docker/layer/Dockerfile .
+CONTAINER=$(docker run -d py38-sqlite-builder false)
+docker cp $CONTAINER:/var/task/python/ layer/.
+docker rm $CONTAINER
