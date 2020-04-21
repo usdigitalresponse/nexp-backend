@@ -4,7 +4,7 @@
 
 We built the NEXP bakend to support Louisiana Health Work Connect, a program administered by the state of Louisiana to connect furloughed healthcare workers with medical facilities in need of additional staff.
 
-Healthcare workers fill out an Airtable form to be added to the system. The State itself onboards medical facilities. This system reminds facility administrators to update the State about their staffing needs at a regular system. With those needs documented, this system sends an email to facilities each morning with a expiring link to an excel spreadsheet of matching candidates.
+Healthcare workers fill out an Airtable form to be added to the system. The State itself onboards medical facilities. This system reminds facility administrators to update the State about their staffing needs at a regular cadence. With those needs documented, this system sends an email to facilities each morning with a expiring link to an excel spreadsheet of matching candidates.
 
 ## Installation & Deploys
 
