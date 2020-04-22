@@ -41,7 +41,6 @@ class SendCandidateLists:
         ("high_priority_health_care_practice", "High Priority Practice"),
         ("additional_practice_areas", "Additional Practice Areas"),
         ("certifications", "Certifications"),
-        ("language_proficiency", "Languages Proficiencies"),
         ("populations_served", "Populations Served"),
         ("date_available", "Date Available"),
         ("available_on_weekdays", "Weekday Availability"),
