@@ -36,6 +36,7 @@ class SendCandidateLists:
         ("license_number", "License Number"),
         ("license_status", "License Status"),
         ("npi_number", "NPI Number"),
+        ("out_of_state_license", "Out of State License"),
         ("practice_recency", "Practice Recency"),
         ("high_priority_health_care_practice", "High Priority Practice"),
         ("additional_practice_areas", "Additional Practice Areas"),
@@ -46,12 +47,14 @@ class SendCandidateLists:
         ("available_on_weekdays", "Weekday Availability"),
         ("workday_availability", "Workday Availability"),
         ("ft_v_pt", "Full-time or Part-time?"),
+        ("notes_about_availability", "Notes about Availability"),
         ("retirement_home_availability", "Willing to work at retirement homes?"),
         ("covid_comfort", "Comfortable working with CoVid patients?"),
         ("critical_care_comfort", "Comfortable working in a crit care setting?"),
         ("mrc_member", "Is an MRC Member?"),
         ("need_housing", "Would need housing?"),
         ("telehealth_availability", "Available to telehealth?"),
+        ("interest_and_ability", "Interest and Ability"),
     )
 
     def __init__(self, clients: Clients, dryrun: bool = False):
@@ -132,10 +135,10 @@ class SendCandidateLists:
                     self.clients.data.feedback_form_url, facility.id_
                 ),
                 "date": datestring,
-                "name": facility.contact_name
-                if hasattr(facility, "contact_name")
-                else "there",
-                "count": count,
+                "name": facility.contact_name,
+                "candidate_count_string": f"are {count} candidates"
+                if count > 1
+                else "is 1 candidate",
             },
         )
 

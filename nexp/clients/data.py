@@ -136,6 +136,9 @@ class Data:
             facility.id_, {"Suppress No Candidates Email": value}
         )
 
+    def track(self, facility: Any, event_type: str, **kwargs) -> None:
+        return
+
     @cached_property
     def __connection(self) -> sqlite3.Connection:
         return sqlite3.connect(self.__db_filepath)
@@ -185,7 +188,7 @@ class Data:
                     self.__insert_record_sql(table_name), buffer
                 )
 
-    def __fill(self) -> None:
+    def fill(self) -> None:
         """Fill a sqlite database with all of the data we need to generate matches
         in airtable
         """
@@ -197,7 +200,7 @@ class Data:
 
     def __run_select_query(self, sql: str, args: List[Any]) -> ModelIterator:
         if not self.__filled:
-            self.__fill()
+            self.fill()
 
         with self.__connection:
             cursor = self.__connection.cursor()

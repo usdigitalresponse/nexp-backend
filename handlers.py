@@ -8,6 +8,8 @@ clients = Clients()
 
 
 def send_candidates_lists(*args):
+    # Always refill the local database
+    clients.data.fill()
     run = SendCandidateLists(clients)
     run()
 
