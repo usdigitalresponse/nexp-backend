@@ -208,7 +208,7 @@ class Data:
             for row in cursor.fetchall():
                 yield Model.from_row(row)
 
-    def candidates_for_facility(self, facility_name: str) -> ModelIterator:
+    def candidates_for_facility(self, facility_id: str) -> ModelIterator:
         """Given the name of a facility, find all the candidates that match
         its most recent staffing request. This is quite sensitve to the structure
         of the data we collect. Returns a generator over the models that come
@@ -235,11 +235,10 @@ class Data:
 
             ), facility_needs AS (
 
-               SELECT datetime(json_extract(n.fields, "$.time_requesed")) as time_requested
+               SELECT datetime(json_extract(n.fields, "$.time_requested")) as time_requested
                     , json_extract(n.fields, "$.practice_area_1") as practice_area_1
                     , json_extract(n.fields, "$.practice_area_2") as practice_area_2
                     , json_extract(n.fields, "$.practice_area_3") as practice_area_3
-
                     , r.value as region
 
                  FROM facilities f, json_each(f.fields, "$.region") r
@@ -247,7 +246,7 @@ class Data:
                  JOIN needs_extrapolated n
                    ON f.id = n.facility_id
 
-                WHERE json_extract(f.fields, "$.facility_name") = ?
+                WHERE f.id = ?
                   AND practice_area_1 is not null
 
              ORDER BY time_requested DESC
@@ -279,4 +278,4 @@ class Data:
               JOIN distinct_candidate_ids USING (id)
             ;
         """
-        return self.__run_select_query(sql, [facility_name])
+        return self.__run_select_query(sql, [facility_id])

@@ -64,7 +64,7 @@ class SendCandidateLists:
     def get_facility_candidates(self, facility: Any) -> ModelIterator:
         """Given a facility object, returns a generator of candidates that match
         their latest filter criteria"""
-        return self.clients.data.candidates_for_facility(facility.facility_name)
+        return self.clients.data.candidates_for_facility(facility.id_)
 
     def write_excel_file(
         self, facility: Any, dirpath: str, data: ListAny
