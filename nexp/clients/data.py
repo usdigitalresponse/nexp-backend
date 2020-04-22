@@ -88,9 +88,9 @@ class Data:
 
     def list_facilities(self) -> ModelIterator:
         """List all of the facilities"""
-        if self.__filled:
-            return self.__run_select_query("select * from facilities;", [])
-        return self.fetchall(self.facilities_api)
+        for facility in self.fetchall(self.facilities_api):
+            if hasattr(facility, "approved") and facility.approved:
+                yield facility
 
     @cached_property
     def config(self) -> dict:
