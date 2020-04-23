@@ -5,20 +5,52 @@ import argparse
 from nexp.clients.all import Clients
 from nexp.tasks.send_candidate_lists import SendCandidateLists
 from nexp.tasks.send_needs_requests import SendNeedsRequests
+from nexp import utils
 
 
-def send_candidate_lists(dryrun: bool) -> None:
+def send_candidate_lists(dryrun: bool = False, **kwargs) -> None:
     return SendCandidateLists(Clients(), dryrun)()
 
 
-def send_needs_requests(dryrun: bool) -> None:
+def send_needs_requests(dryrun: bool = False, **kwargs) -> None:
     return SendNeedsRequests(Clients(), dryrun)()
+
+
+def generate_database(filepath: str = "", **kwargs) -> None:
+    if not len(filepath):
+        print("Missing '--filepath'")
+        exit(1)
+
+    clients = Clients()
+    clients.data.db_filepath = filepath
+    clients.data.fill()
+    print(f"Database created @ '{filepath}'")
+
+
+def generate_candidate_sheets(filepath: str = "", **kwargs) -> None:
+    clients = Clients()
+    runner = SendCandidateLists(clients)
+
+    utils.mkdirp(filepath)
+
+    for facility in clients.data.list_facilities():
+        candidates = list(runner.get_facility_candidates(facility))
+
+        print(f"Found {len(candidates)} candidates for '{facility.facility_name}'")
+
+        runner.write_excel_file(facility, filepath, list(candidates))
+
+
+def list_facilities_in_need(**kwargs) -> None:
+    for facility in Clients().data.facilities_in_need():
+        print(f"{facility.facility_name}\t{facility.id_}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="NEXP Backend")
     parser.add_argument("command", nargs=1)
     parser.add_argument("-d", "--dryrun", action="store_true", default=False)
+    parser.add_argument("-f", "--filepath", default="")
     args = parser.parse_args()
 
     command = args.command[0]
@@ -26,13 +58,16 @@ def main() -> None:
     run = {
         "send-candidate-lists": send_candidate_lists,
         "send-needs-requests": send_needs_requests,
+        "generate-database": generate_database,
+        "generate-candidate-sheets": generate_candidate_sheets,
+        "list-facilities-in-need": list_facilities_in_need,
     }.get(command)
 
     if not run:
         print(f"'{command}' is not a valid command")
         exit(1)
 
-    run(args.dryrun)
+    run(dryrun=args.dryrun, filepath=args.filepath)
 
 
 if __name__ == "__main__":

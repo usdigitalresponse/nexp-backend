@@ -79,9 +79,12 @@ class SendCandidateLists:
         workbook = xlsxwriter.Workbook(filepath)
         sheet = workbook.add_worksheet("Candidates")
 
+        widths = {}
+
         # Write the header
         for i, (_, name) in enumerate(self.__candidate_columns):
             sheet.write(0, i, name)
+            widths[i] = len(name)
 
         # Write the rows
         row = 1
@@ -95,7 +98,21 @@ class SendCandidateLists:
                     value = ", ".join(value)
 
                 sheet.write(row, i, value)
+                value_length = len(str(value))
+
+                if value_length > widths[i]:
+                    widths[i] = value_length
+
             row += 1
+
+        # Set the column widths to the lengths of their longest values. These
+        # numbers aren't strictly "right", but in practice they get us relatively
+        # close to where we'd want these thigns to wind up. Technically, you'd
+        # need to do it based on the font and its rendered size, but that really
+        # seems like overkill for this. I just don't want folks opening a sheet
+        # with a bunch of overlapping things on it.
+        for column_index, length in widths.items():
+            sheet.set_column(column_index, column_index, length)
 
         workbook.close()
         return filepath, filename
@@ -222,7 +239,7 @@ class SendCandidateLists:
     def __call__(self) -> None:
         """Send out candidate lists to all approved facilities"""
         with TemporaryDirectory() as dirpath:
-            for facility in self.clients.data.list_facilities():
+            for facility in self.clients.data.facilities_in_need():
                 if not hasattr(facility, "contact_email") or not facility.contact_email:
                     logging.warn(
                         f"Could not send candidates list to facility. Email missing (facility: '{facility.facility_name}')"

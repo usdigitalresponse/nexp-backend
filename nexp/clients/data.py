@@ -55,7 +55,7 @@ class Data:
     ) -> None:
         self.__api_key = api_key or config.airtable_api_key
         self.__base_id = base_id or config.airtable_base_id
-        self.__db_filepath = db_filepath or ":memory:"
+        self.db_filepath = db_filepath or ":memory:"
         self.__filled = False
 
     @cached_property
@@ -141,7 +141,7 @@ class Data:
 
     @cached_property
     def __connection(self) -> sqlite3.Connection:
-        return sqlite3.connect(self.__db_filepath)
+        return sqlite3.connect(self.db_filepath)
 
     def __create_table_sql(self, table_name: str) -> str:
         return """
@@ -207,6 +207,38 @@ class Data:
             cursor.execute(sql, args)
             for row in cursor.fetchall():
                 yield Model.from_row(row)
+
+    def facilities_in_need(self) -> ModelIterator:
+        sql = """
+            WITH needs_extrapolated AS (
+
+               SELECT n.*
+                    , json_each.value as facility_id
+
+                 FROM needs n, json_each(n.fields, "$.facility")
+
+            ), facility_needs AS (
+
+               SELECT f.id as id
+                    , datetime(json_extract(n.fields, "$.time_requested")) as time_requested
+                    , json_extract(n.fields, "$.needs_met") as needs_met
+
+                 FROM facilities f
+
+                 JOIN needs_extrapolated n
+                   ON f.id = n.facility_id
+
+             ORDER BY time_requested DESC
+                LIMIT 1
+
+            )
+            SELECT *
+              FROM facilities f
+              JOIN facility_needs n USING ( id )
+             WHERE needs_met is null
+                OR needs_met  = "No"
+            """
+        return self.__run_select_query(sql, [])
 
     def candidates_for_facility(self, facility_id: str) -> ModelIterator:
         """Given the name of a facility, find all the candidates that match

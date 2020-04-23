@@ -3,6 +3,7 @@
 .env
 .vscode
 .serverless
+sheets
 layer
 
 # Compiled source #

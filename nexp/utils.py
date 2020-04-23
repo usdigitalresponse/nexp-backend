@@ -1,8 +1,9 @@
 # nexp.utils
 
 from typing import Union
-
 from datetime import datetime
+import pathlib
+
 import pytz
 
 from nexp.config import config
@@ -26,3 +27,7 @@ def display_date_string(date: Union[datetime, None] = None) -> str:
 
 def prefill_facility_link(base_url: str, id_: str) -> str:
     return f"{base_url}?prefill_Facility={id_}"
+
+
+def mkdirp(dirpath: str) -> None:
+    return pathlib.Path(dirpath).mkdir(parents=True, exist_ok=True)
