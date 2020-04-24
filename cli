@@ -33,7 +33,7 @@ def generate_candidate_sheets(filepath: str = "", **kwargs) -> None:
 
     utils.mkdirp(filepath)
 
-    for facility in clients.data.list_facilities():
+    for facility in clients.data.facilities_in_need():
         candidates = list(runner.get_facility_candidates(facility))
 
         print(f"Found {len(candidates)} candidates for '{facility.facility_name}'")

@@ -214,23 +214,23 @@ class Data:
 
                SELECT n.*
                     , json_each.value as facility_id
+                    , row_number() over (
+                        partition by json_each.value
+                        order by datetime(json_extract(n.fields, "$.time_requested")) desc
+                      ) rn
 
                  FROM needs n, json_each(n.fields, "$.facility")
 
             ), facility_needs AS (
 
                SELECT f.id as id
-                    , datetime(json_extract(n.fields, "$.time_requested")) as time_requested
                     , json_extract(n.fields, "$.needs_met") as needs_met
 
                  FROM facilities f
 
                  JOIN needs_extrapolated n
                    ON f.id = n.facility_id
-
-             ORDER BY time_requested DESC
-                LIMIT 1
-
+                  AND rn   = 1
             )
             SELECT *
               FROM facilities f
@@ -262,13 +262,16 @@ class Data:
 
                SELECT n.*
                     , json_each.value as facility_id
+                    , row_number() over (
+                        partition by json_each.value
+                        order by datetime(json_extract(n.fields, "$.time_requested")) desc
+                      ) rn
 
                  FROM needs n, json_each(n.fields, "$.facility")
 
             ), facility_needs AS (
 
-               SELECT datetime(json_extract(n.fields, "$.time_requested")) as time_requested
-                    , json_extract(n.fields, "$.practice_area_1") as practice_area_1
+               SELECT json_extract(n.fields, "$.practice_area_1") as practice_area_1
                     , json_extract(n.fields, "$.practice_area_2") as practice_area_2
                     , json_extract(n.fields, "$.practice_area_3") as practice_area_3
                     , r.value as region
@@ -280,9 +283,7 @@ class Data:
 
                 WHERE f.id = ?
                   AND practice_area_1 is not null
-
-             ORDER BY time_requested DESC
-                LIMIT 1
+                  AND rn = 1
 
             ), distinct_candidate_ids AS  (
 
