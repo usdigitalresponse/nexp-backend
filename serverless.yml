@@ -71,6 +71,8 @@ functions:
   send-candidate-lists:
     name: nexp-${self:custom.stage}-send-candidate-lists
     handler: handlers.send_candidates_lists
+    events:
+      - schedule: cron(0 13 * * ? *) # 8am CST on even number days
     timeout: 900
     package:
       exclude:
@@ -86,6 +88,8 @@ functions:
   send-needs-requests:
     name: nexp-${self:custom.stage}-send-needs-requests
     handler: handlers.send_needs_requests
+    events:
+      - schedule: cron(0 17 2-30/2 * ? *) # Noon CST on even number days
     timeout: 900
     package:
       exclude:
