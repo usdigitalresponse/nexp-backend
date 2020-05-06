@@ -4,10 +4,11 @@ from typing import Any, Generator, List
 from json import dumps, loads
 from functools import cached_property
 import sqlite3
+import logging
 
 from airtable import Airtable
 
-from nexp.aliases import OptionalString, GenAny
+from nexp.aliases import ListAny, OptionalString, GenAny
 from nexp.config import config
 
 ModelIterator = Generator[Any, None, None]
@@ -78,6 +79,10 @@ class Data:
     def config_api(self) -> Airtable:
         return Airtable(self.__base_id, config.airtable_config_table, self.__api_key)
 
+    @cached_property
+    def tracking_api(self) -> Airtable:
+        return Airtable(self.__base_id, config.airtable_tracking_table, self.__api_key)
+
     def fetchall(self, api: Airtable, **kwargs) -> GenAny:
         """Given an airtable api object, generate all of the records in the
         associated table
@@ -136,8 +141,37 @@ class Data:
             facility.id_, {"Suppress No Candidates Email": value}
         )
 
-    def track(self, facility: Any, event_type: str, **kwargs) -> None:
-        return
+    def track(
+        self, email_address: str, facility: Any, event_type: str, **kwargs
+    ) -> None:
+        try:
+            data = {
+                "Facility": [facility.id_],
+                "Mailing Type": event_type,
+                "Email Address": email_address,
+            }
+            data.update(kwargs)
+            self.tracking_api.insert(data)
+        except Exception:
+            logging.exception(
+                f"Failed adding tracking record to Airtable (facility: {facility.facility_name}; kwargs: {kwargs})"
+            )
+
+    def track_candidates(
+        self, email_address: str, facility: Any, candidates: ListAny
+    ) -> None:
+        try:
+            count = len(candidates)
+            candidate_ids = [candidate.id_ for candidate in candidates]
+            self.track(
+                email_address,
+                facility,
+                "Candidate List",
+                Candidates=candidate_ids,
+                Count=count,
+            )
+        except:
+            pass
 
     @cached_property
     def __connection(self) -> sqlite3.Connection:
@@ -240,7 +274,7 @@ class Data:
             """
         return self.__run_select_query(sql, [])
 
-    def candidates_for_facility(self, facility_id: str) -> ModelIterator:
+    def candidates_for_facility(self, facility: Any) -> ModelIterator:
         """Given the name of a facility, find all the candidates that match
         its most recent staffing request. This is quite sensitve to the structure
         of the data we collect. Returns a generator over the models that come
@@ -257,7 +291,22 @@ class Data:
         # frustrating to work with.
         #
         # Look to my works and despair
-        sql = """
+
+        # We do a little extra worth for nursing homes facilities that are only a
+        # nursing home
+        is_nursing_home = False
+        if (
+            hasattr(facility, "facility_type")
+            and len(facility.facility_type) == 1
+            and facility.facility_type[0] == "Nursing Home"
+        ):
+            is_nursing_home = True
+
+        clause = ""
+        if is_nursing_home:
+            clause = """AND json_extract(c.fields, "$.retirement_home_availability") = "Yes" """
+
+        sql = f"""
             WITH needs_extrapolated AS (
 
                SELECT n.*
@@ -302,6 +351,7 @@ class Data:
 
                 WHERE json_extract(c.fields, "$.hired")       is null
                   AND json_extract(c.fields, "$.unavailable") is null
+                      {clause}
 
             )
             SELECT *
@@ -311,4 +361,4 @@ class Data:
               JOIN distinct_candidate_ids USING (id)
             ;
         """
-        return self.__run_select_query(sql, [facility_id])
+        return self.__run_select_query(sql, [facility.id_])

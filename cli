@@ -38,7 +38,8 @@ def generate_candidate_sheets(filepath: str = "", **kwargs) -> None:
 
         print(f"Found {len(candidates)} candidates for '{facility.facility_name}'")
 
-        runner.write_excel_file(facility, filepath, list(candidates))
+        if len(candidates):
+            runner.write_excel_file(facility, filepath, list(candidates))
 
 
 def list_facilities_in_need(**kwargs) -> None:

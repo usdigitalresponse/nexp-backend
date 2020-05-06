@@ -27,32 +27,30 @@ class SendCandidateLists:
         ("name", "Name"),
         ("phone_number", "Phone Number"),
         ("email_address", "Email Address"),
-        ("date_of_birth", "Date of Birth"),
+        ("high_priority_health_care_practice", "High Priority Practice"),
+        ("additional_practice_areas", "Additional Practice Areas"),
+        ("regional_availability", "Regional Availability"),
+        ("practice_recency", "Practice Recency"),
+        ("license_status", "License Status"),
+        ("license_number", "License Number"),
+        ("out_of_state_license", "Out of State License"),
+        ("certifications", "Certifications"),
+        ("ft_v_pt", "Full-time or Part-time?"),
+        ("workday_availability", "Shift Preference"),
+        ("available_on_weekdays", "Weekday Availability"),
+        ("date_available", "Date Available"),
+        ("notes_about_availability", "Notes about Availability"),
+        ("covid_comfort", "Comfortable working with CoVid patients?"),
+        ("critical_care_comfort", "Comfortable working in critical care settings?"),
+        ("retirement_home_availability", "Willing to work at nursing homes?"),
+        ("telehealth_availability", "Open to a telehealth role?"),
+        ("mrc_member", "Is an Medical Reserve Corps Member?"),
+        ("need_housing", "Would need housing?"),
+        ("over_18", "Over 18?"),
         ("street_address", "Street Address"),
         ("city", "City"),
         ("zip_code", "Zip Code"),
         ("state", "State"),
-        ("regional_availability", "Regional Availability"),
-        ("license_number", "License Number"),
-        ("license_status", "License Status"),
-        ("npi_number", "NPI Number"),
-        ("out_of_state_license", "Out of State License"),
-        ("practice_recency", "Practice Recency"),
-        ("high_priority_health_care_practice", "High Priority Practice"),
-        ("additional_practice_areas", "Additional Practice Areas"),
-        ("certifications", "Certifications"),
-        ("populations_served", "Populations Served"),
-        ("date_available", "Date Available"),
-        ("available_on_weekdays", "Weekday Availability"),
-        ("workday_availability", "Workday Availability"),
-        ("ft_v_pt", "Full-time or Part-time?"),
-        ("notes_about_availability", "Notes about Availability"),
-        ("retirement_home_availability", "Willing to work at retirement homes?"),
-        ("covid_comfort", "Comfortable working with CoVid patients?"),
-        ("critical_care_comfort", "Comfortable working in a crit care setting?"),
-        ("mrc_member", "Is an MRC Member?"),
-        ("need_housing", "Would need housing?"),
-        ("telehealth_availability", "Available to telehealth?"),
         ("interest_and_ability", "Interest and Ability"),
     )
 
@@ -63,7 +61,7 @@ class SendCandidateLists:
     def get_facility_candidates(self, facility: Any) -> ModelIterator:
         """Given a facility object, returns a generator of candidates that match
         their latest filter criteria"""
-        return self.clients.data.candidates_for_facility(facility.id_)
+        return self.clients.data.candidates_for_facility(facility)
 
     def write_excel_file(
         self, facility: Any, dirpath: str, data: ListAny
@@ -179,6 +177,9 @@ class SendCandidateLists:
             return  # Early Return
 
         self.send_facility_candiates_email(facility, url, len(candidates))
+        self.clients.data.track_candidates(
+            facility.contact_email.lower().strip(), facility, candidates
+        )
 
         logging.info(
             f"Sent candiates list email to facility. (facility: {facility.facility_name})"

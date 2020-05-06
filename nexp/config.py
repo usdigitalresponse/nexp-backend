@@ -59,6 +59,11 @@ class Config:
         return environ.get("AIRTABLE_CONFIG_TABLE", "Configuration")
 
     @cached_property
+    def airtable_tracking_table(self) -> str:
+        """The name of the mailing tracking table in Airtable"""
+        return environ.get("AIRTABLE_TRACKING_TABLE", "Mailing Tracking")
+
+    @cached_property
     def sendgrid_api_key(self) -> str:
         """Your Sendgrid API Key"""
         return environ["SENDGRID_API_KEY"]
