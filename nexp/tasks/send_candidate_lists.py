@@ -195,6 +195,11 @@ class SendCandidateLists:
             )
             return  # Early Return
 
+        # Let's add a record to the tracking table
+        self.clients.data.track_candidates(
+            facility.contact_email.lower().strip(), facility, []
+        )
+
         if (
             hasattr(facility, "suppress_no_candidates_email")
             and facility.suppress_no_candidates_email
