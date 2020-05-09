@@ -5,6 +5,7 @@
 .serverless
 sheets
 layer
+.terraform
 
 # Compiled source #
 ###################
