@@ -1,0 +1,35 @@
+name: "[Dev] Deploy"
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  deploy:
+    name: Deploy Nexp Backend
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: us-east-1
+      STAGE: dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: Install Python Tools
+        run: make install-python-tools
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14.x
+      - name: Install deploy dependencies
+        run: make install-deploy-dependencies
+      - name: Build layer
+        run: make build
+      - name: Deploy
+        run: make deploy
