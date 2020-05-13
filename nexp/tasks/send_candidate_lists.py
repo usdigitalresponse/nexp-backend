@@ -150,6 +150,7 @@ class SendCandidateLists:
                 ),
                 "date": datestring,
                 "name": facility.contact_name,
+                "facility_name": facility.facility_name,
                 "candidate_count_string": f"are {count} candidates"
                 if count > 1
                 else "is 1 candidate",
