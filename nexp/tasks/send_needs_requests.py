@@ -31,6 +31,7 @@ class SendNeedsRequests:
             self.clients.data.unsubscribe_group_id,
             template_data={
                 "name": facility.contact_name,
+                "facility_name": facility.facility_name,
                 "date": date_string,
                 "feedback_form_url": utils.prefill_facility_link(
                     self.clients.data.feedback_form_url, facility.id_
