@@ -83,6 +83,12 @@ class Data:
     def tracking_api(self) -> Airtable:
         return Airtable(self.__base_id, config.airtable_tracking_table, self.__api_key)
 
+    @cached_property
+    def candidate_tags_api(self) -> Airtable:
+        return Airtable(
+            self.__base_id, config.airtable_candidate_tags_table, self.__api_key
+        )
+
     def fetchall(self, api: Airtable, **kwargs) -> GenAny:
         """Given an airtable api object, generate all of the records in the
         associated table
@@ -188,7 +194,7 @@ class Data:
         )
 
     def __init_db(self) -> None:
-        for table in ("candidates", "facilities", "needs"):
+        for table in ("candidates", "facilities", "needs", "candidate_tags"):
             with self.__connection:
                 self.__connection.execute(self.__create_table_sql(table))
 
@@ -228,7 +234,7 @@ class Data:
         """
         self.__init_db()
 
-        for table_name in ("candidates", "facilities", "needs"):
+        for table_name in ("candidates", "facilities", "needs", "candidate_tags"):
             self.__fill_table(table_name)
         self.__filled = True
 
@@ -334,7 +340,7 @@ class Data:
                   AND practice_area_1 is not null
                   AND rn = 1
 
-            ), distinct_candidate_ids AS  (
+            ), needed_candidate_ids AS  (
 
                SELECT DISTINCT
                       c.id
@@ -353,12 +359,31 @@ class Data:
                   AND json_extract(c.fields, "$.unavailable") is null
                       {clause}
 
+            ), tagged_candidate_ids as (
+
+               SELECT DISTINCT
+                      c.value as id
+
+                 FROM candidate_tags t
+                    , json_each(t.fields, "$.authorized_facilities") f
+                    , json_each(t.fields, "$.candidates") c
+
+                WHERE f.value = ?
+
             )
             SELECT *
 
               FROM candidates c
 
-              JOIN distinct_candidate_ids USING (id)
+              JOIN needed_candidate_ids USING (id)
+
+                UNION
+
+            SELECT *
+
+              FROM candidates C
+
+              JOIN tagged_candidate_ids USING (id)
             ;
         """
-        return self.__run_select_query(sql, [facility.id_])
+        return self.__run_select_query(sql, [facility.id_, facility.id_])
