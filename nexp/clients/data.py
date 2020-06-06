@@ -30,7 +30,16 @@ class Model:
     @classmethod
     def from_row(cls, row: List[str]) -> Any:
         """Given a SQL row, turn it into a Model"""
-        return cls(row[0], loads(row[1]))
+        row_level_info = loads(row[1])
+
+        # if we are processing a candidate, we merge in the prevSent indicator to its field dict
+        if row_level_info.get("candidate_name_&_phone") is not None:
+            row_level_info["previouslySentGroup"] = row[2]
+            return cls(row[0], row_level_info)
+
+        # if we process a facility, we proceed as normal, taking the id and fields
+        else:
+            return cls(row[0], loads(row[1]))
 
     def __init__(self, id_: str, fields: dict) -> None:
         self.id_ = id_
@@ -127,6 +136,10 @@ class Data:
         return self.config["needs_template_id"]
 
     @cached_property
+    def tracking_template_id(self) -> str:
+        return self.config["tracking_template_id"]
+
+    @cached_property
     def no_candidates_template_id(self) -> str:
         return self.config["no_candidates_template_id"]
 
@@ -194,7 +207,13 @@ class Data:
         )
 
     def __init_db(self) -> None:
-        for table in ("candidates", "facilities", "needs", "candidate_tags"):
+        for table in (
+            "candidates",
+            "facilities",
+            "needs",
+            "candidate_tags",
+            "tracking",
+        ):
             with self.__connection:
                 self.__connection.execute(self.__create_table_sql(table))
 
@@ -234,7 +253,13 @@ class Data:
         """
         self.__init_db()
 
-        for table_name in ("candidates", "facilities", "needs", "candidate_tags"):
+        for table_name in (
+            "candidates",
+            "facilities",
+            "needs",
+            "candidate_tags",
+            "tracking",
+        ):
             self.__fill_table(table_name)
         self.__filled = True
 
@@ -340,10 +365,21 @@ class Data:
                   AND practice_area_1 is not null
                   AND rn = 1
 
-            ), needed_candidate_ids AS  (
+            ), previously_sent_candidate_ids AS (
 
+               SELECT
+                    candidate_ids.value as c_id
+
+               FROM tracking t
+                    , json_each(t.fields, '$.facility' ) facility_id
+                    , json_each(t.fields, '$.candidates' ) candidate_ids
+
+               JOIN facilities f
+                   ON facility_id.value = f.id
+            ), needed_candidate_ids AS  (
                SELECT DISTINCT
-                      c.id
+                      c.id,
+                      CASE p.c_id WHEN null THEN "No" ELSE "Yes" END previouslySentGroup
 
                  FROM candidates c
                     , json_each(c.fields, "$.high_priority_health_care_practice") p
@@ -354,6 +390,8 @@ class Data:
                   AND (    p.value = f.practice_area_1
                         OR p.value = f.practice_area_2
                         OR p.value = f.practice_area_3 )
+                LEFT JOIN previously_sent_candidate_ids p
+                  ON p.c_id = c.id
 
                 WHERE json_extract(c.fields, "$.hired")       is null
                   AND json_extract(c.fields, "$.unavailable") is null
@@ -363,15 +401,18 @@ class Data:
 
                SELECT DISTINCT
                       c.value as id
+                      , CASE p.c_id WHEN null THEN "No" ELSE "Yes" END previouslySentGroup
 
                  FROM candidate_tags t
                     , json_each(t.fields, "$.authorized_facilities") f
                     , json_each(t.fields, "$.candidates") c
+                LEFT JOIN previously_sent_candidate_ids p
+                  ON p.c_id = c.value
 
                 WHERE f.value = ?
 
             )
-            SELECT *
+            SELECT distinct c.id, c.fields, previouslySentGroup
 
               FROM candidates c
 
@@ -379,7 +420,7 @@ class Data:
 
                 UNION
 
-            SELECT *
+            SELECT distinct c.id, c.fields, previouslySentGroup
 
               FROM candidates C
 
