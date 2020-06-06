@@ -25,7 +25,7 @@ RUN pip install virtualenv   \
       && python setup.py install
 
 RUN mkdir -p /var/task/python/ \
-      && cp -r ./sqlite/lib/python3.8/site-packages/pysqlite3-0.4.2-py3.8-linux-x86_64.egg/pysqlite3/* /var/task/python
+      && cp -r ./sqlite/lib/python3.8/site-packages/pysqlite3-*-py3.8-linux-x86_64.egg/pysqlite3/* /var/task/python
 
 WORKDIR /var/task
 

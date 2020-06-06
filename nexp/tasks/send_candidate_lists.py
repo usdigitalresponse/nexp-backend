@@ -11,6 +11,7 @@ from nexp.clients.data import ModelIterator
 from nexp.clients.all import Clients
 from nexp.aliases import ListAny, OptionalString
 from nexp import utils
+from nexp.utils import Sheet
 
 
 class SendCandidateLists:
@@ -25,6 +26,7 @@ class SendCandidateLists:
     # Attribute to column mappings for the xlsx file
     __candidate_columns = (
         ("name", "Name"),
+        ("previouslySentGroup", "Previously Sent"),
         ("phone_number", "Phone Number"),
         ("email_address", "Email Address"),
         ("high_priority_health_care_practice", "High Priority Practice"),
@@ -75,33 +77,20 @@ class SendCandidateLists:
         filepath = path.join(dirpath, f"{facility.id_}-{filename}")
 
         workbook = xlsxwriter.Workbook(filepath)
-        sheet = workbook.add_worksheet("Candidates")
 
-        widths = {}
+        sheet = Sheet(workbook, "Candidates")
 
         # Write the header
         for i, (_, name) in enumerate(self.__candidate_columns):
-            sheet.write(0, i, name)
-            widths[i] = len(name)
+            sheet.data_sheet.write(0, i, name)
+            sheet.set_widths(i, len(name))
 
-        # Write the rows
-        row = 1
-        for record in data:
-            for i, (key, _) in enumerate(self.__candidate_columns):
-                value = getattr(record, key) if hasattr(record, key) else None
+        # Write the rows for new candidates first and then old ones
+        new_candidates = [x for x in data if x.previouslySentGroup == "No"]
+        previously_sent_candidates = [x for x in data if x.previouslySentGroup == "Yes"]
 
-                # A bunch of the data from airtable shows up as lists. We just
-                # comma delimit those when that's the case
-                if isinstance(value, list):
-                    value = ", ".join(value)
-
-                sheet.write(row, i, value)
-                value_length = len(str(value))
-
-                if value_length > widths[i]:
-                    widths[i] = value_length
-
-            row += 1
+        sheet.write_candidates(new_candidates, self.__candidate_columns)
+        sheet.write_candidates(previously_sent_candidates, self.__candidate_columns)
 
         # Set the column widths to the lengths of their longest values. These
         # numbers aren't strictly "right", but in practice they get us relatively
@@ -109,8 +98,7 @@ class SendCandidateLists:
         # need to do it based on the font and its rendered size, but that really
         # seems like overkill for this. I just don't want folks opening a sheet
         # with a bunch of overlapping things on it.
-        for column_index, length in widths.items():
-            sheet.set_column(column_index, column_index, length)
+        sheet.space_column_widths()
 
         workbook.close()
         return filepath, filename
