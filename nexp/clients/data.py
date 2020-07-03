@@ -7,9 +7,12 @@ import sqlite3
 import logging
 
 from airtable import Airtable
+from google.oauth2.credentials import Credentials
+import pygsheets
 
 from nexp.aliases import ListAny, OptionalString, GenAny
 from nexp.config import config
+from nexp import utils
 
 ModelIterator = Generator[Any, None, None]
 
@@ -28,18 +31,15 @@ class Model:
         return cls(id_, fields)
 
     @classmethod
-    def from_row(cls, row: List[str]) -> Any:
+    def from_row(cls, row: List[str], for_lists: bool = False) -> Any:
         """Given a SQL row, turn it into a Model"""
         row_level_info = loads(row[1])
 
-        # if we are processing a candidate, we merge in the prevSent indicator to its field dict
-        if row_level_info.get("candidate_name_&_phone") is not None:
+        if for_lists:
             row_level_info["previouslySentGroup"] = row[2]
             return cls(row[0], row_level_info)
 
-        # if we process a facility, we proceed as normal, taking the id and fields
-        else:
-            return cls(row[0], loads(row[1]))
+        return cls(row[0], loads(row[1]))
 
     def __init__(self, id_: str, fields: dict) -> None:
         self.id_ = id_
@@ -49,6 +49,9 @@ class Model:
     def to_row(self) -> List[str]:
         """Return a dbapi compatible row"""
         return [self.id_, dumps(self.fields)]
+
+    def to_sheet(self, columns) -> List[str]:
+        return [utils.safe_list_convert(self.fields.get(c, "")) for c in columns]
 
 
 class Data:
@@ -96,6 +99,12 @@ class Data:
     def candidate_tags_api(self) -> Airtable:
         return Airtable(
             self.__base_id, config.airtable_candidate_tags_table, self.__api_key
+        )
+
+    @cached_property
+    def google_client(self):
+        return pygsheets.client.Client(
+            Credentials.from_authorized_user_info(config.google_credentials)
         )
 
     def fetchall(self, api: Airtable, **kwargs) -> GenAny:
@@ -263,7 +272,9 @@ class Data:
             self.__fill_table(table_name)
         self.__filled = True
 
-    def __run_select_query(self, sql: str, args: List[Any]) -> ModelIterator:
+    def __run_select_query(
+        self, sql: str, args: List[Any], for_lists: bool = False
+    ) -> ModelIterator:
         if not self.__filled:
             self.fill()
 
@@ -271,7 +282,10 @@ class Data:
             cursor = self.__connection.cursor()
             cursor.execute(sql, args)
             for row in cursor.fetchall():
-                yield Model.from_row(row)
+                yield Model.from_row(row, for_lists=for_lists)
+
+    def select_all(self, name):
+        return self.__run_select_query(f"""SELECT * FROM {name};""", [])
 
     def facilities_in_need(self) -> ModelIterator:
         sql = """
@@ -427,4 +441,31 @@ class Data:
               JOIN tagged_candidate_ids USING (id)
             ;
         """
-        return self.__run_select_query(sql, [facility.id_, facility.id_])
+        return self.__run_select_query(
+            sql, [facility.id_, facility.id_], for_lists=True
+        )
+
+    def __get_sheet(self):
+        return self.google_client.open_by_key(config.google_spreadsheet_id)
+
+    def __get_worksheet(self, name):
+        return self.__get_sheet().worksheet_by_title(
+            getattr(config, f"google_{name}_sheet_name")
+        )
+
+    def __write_sheet(self, name, data):
+        worksheet = self.__get_worksheet(name)
+        worksheet.update_values(crange="A1", values=data, extend=True)
+
+    def __determine_header(self, results: ListAny) -> List[str]:
+        keys = set()
+        for r in results:
+            [keys.add(k) for k in r.fields.keys()]
+        return list(sorted(list(keys)))
+
+    def fill_sheets(self):
+        for name in ("candidates", "facilities", "tracking", "needs"):
+            results = list(self.select_all(name))
+            header = self.__determine_header(results)
+            data = [header] + [r.to_sheet(header) for r in results]
+            self.__write_sheet(name, data)

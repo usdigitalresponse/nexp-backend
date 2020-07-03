@@ -2,6 +2,8 @@
 
 from nexp.aliases import OptionalString
 from cached_property import cached_property
+from os.path import dirname, join, realpath
+from json import loads
 from os import environ
 
 
@@ -77,6 +79,38 @@ class Config:
     def override_email_destination(self) -> OptionalString:
         """Override all email destinations. Mainly for testing..."""
         return environ.get("OVERRIDE_EMAIL_DESTINATION")
+
+    @cached_property
+    def google_credentials(self) -> OptionalString:
+        """Your Google Sheets Credentials"""
+        return loads(environ["GOOGLE_CREDENTIALS"])
+
+    @cached_property
+    def google_spreadsheet_id(self) -> OptionalString:
+        """What spreadsheets hosts the worksheets we're updating"""
+        return environ.get(
+            "GOOGLE_SPREADSHEET_ID", "1tth4m5nV6rIOKETdUa5g0D0skOBvIKlIBE1HmCFr7jE"
+        )
+
+    @cached_property
+    def google_candidates_sheet_name(self) -> OptionalString:
+        """What is the name of the Raw Candidates Sheet within Google Sheets?"""
+        return environ.get("GOOGLE_CANDIDATES_SHEET_NAME", "[Raw] Candidates")
+
+    @cached_property
+    def google_facilities_sheet_name(self) -> OptionalString:
+        """What is the name of the Raw Facilities Sheet within Google Sheets?"""
+        return environ.get("GOOGLE_FACILITIES_SHEET_NAME", "[Raw] Facilities")
+
+    @cached_property
+    def google_needs_sheet_name(self) -> OptionalString:
+        """What is the name of the Raw Needs Sheet within Google Sheets?"""
+        return environ.get("GOOGLE_NEEDS_SHEET_NAME", "[Raw] Needs")
+
+    @cached_property
+    def google_tracking_sheet_name(self) -> OptionalString:
+        """What is the name of the Raw Tracking Sheet within Google Sheets?"""
+        return environ.get("GOOGLE_TRACKING_SHEET_NAME", "[Raw] Tracking")
 
 
 # Exports ----------------------------------------------------------------------

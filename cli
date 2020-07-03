@@ -5,6 +5,7 @@ import argparse
 from nexp.clients.all import Clients
 from nexp.tasks.send_candidate_lists import SendCandidateLists
 from nexp.tasks.send_needs_requests import SendNeedsRequests
+from nexp.tasks.update_sheets import UpdateSheets
 from nexp import utils
 
 
@@ -14,6 +15,10 @@ def send_candidate_lists(dryrun: bool = False, **kwargs) -> None:
 
 def send_needs_requests(dryrun: bool = False, **kwargs) -> None:
     return SendNeedsRequests(Clients(), dryrun)()
+
+
+def update_sheets(dryrun: bool = False, **kwargs) -> None:
+    return UpdateSheets(Clients(), dryrun)()
 
 
 def generate_database(filepath: str = "", **kwargs) -> None:
@@ -62,6 +67,7 @@ def main() -> None:
         "generate-database": generate_database,
         "generate-candidate-sheets": generate_candidate_sheets,
         "list-facilities-in-need": list_facilities_in_need,
+        "update-sheets": update_sheets,
     }.get(command)
 
     if not run:
