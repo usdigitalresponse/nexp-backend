@@ -10,7 +10,6 @@ custom:
 
   pythonRequirements:
     dockerizePip: true
-    slim: true
     layer: true
     useDownloadCache: false
     useStaticCache: false
@@ -54,6 +53,11 @@ provider:
     AIRTABLE_BASE_ID: ${ssm:/nexp/${self:custom.stage}/airtable/base-id~true}
     AIRTABLE_API_KEY: ${ssm:/nexp/${self:custom.stage}/airtable/api-key~true}
     SENDGRID_API_KEY: ${ssm:/nexp/shared/sendgrid/api-key~true}
+    GOOGLE_CREDENTIALS: ${ssm:/nexp/shared/google/credentials~true}
+    GOOGLE_CANDIDATES_SHEET_NAME: ${ssm:/nexp/${self:custom.stage}/google/sheets/candidates/name~true}
+    GOOGLE_FACILITIES_SHEET_NAME: ${ssm:/nexp/${self:custom.stage}/google/sheets/facilities/name~true}
+    GOOGLE_NEEDS_SHEET_NAME: ${ssm:/nexp/${self:custom.stage}/google/sheets/needs/name~true}
+    GOOGLE_TRACKING_SHEET_NAME: ${ssm:/nexp/${self:custom.stage}/google/sheets/tracking/name~true}
 
 package:
   excludeDevDependencies: true
@@ -94,6 +98,24 @@ functions:
       - schedule: cron(0 17 ? * MON *) # Noon Monday
       - schedule: cron(0 17 ? * WED *) # Noon Wednesday
       - schedule: cron(0 17 ? * FRI *) # Noon Friday
+    timeout: 900
+    package:
+      exclude:
+        - "layer/**"
+        - ".pytest_cache/**"
+        - "node_modules/**"
+        - ".vscode/**"
+        - ".serverless/**"
+        - "infra/**"
+    layers:
+      - { Ref: PythonRequirementsLambdaLayer }
+      - { Ref: SqliteLambdaLayer }
+
+  update-sheets:
+    name: nexp-${self:custom.stage}-update-sheets
+    handler: handlers.update_sheets
+    events:
+      - schedule: rate(1 hour)
     timeout: 900
     package:
       exclude:

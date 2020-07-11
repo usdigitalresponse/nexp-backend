@@ -1,6 +1,6 @@
 # nexp.utils
 
-from typing import Union
+from typing import Any, Union
 from datetime import datetime
 import pathlib
 
@@ -72,3 +72,9 @@ def prefill_facility_link(base_url: str, id_: str) -> str:
 
 def mkdirp(dirpath: str) -> None:
     return pathlib.Path(dirpath).mkdir(parents=True, exist_ok=True)
+
+
+def safe_list_convert(value: Any) -> Any:
+    if isinstance(value, list):
+        return ", ".join(value)
+    return value
