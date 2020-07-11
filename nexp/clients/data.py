@@ -35,22 +35,11 @@ class Model:
         """Given a SQL row, turn it into a Model"""
         row_level_info = loads(row[1])
 
-<<<<<<< HEAD
         if for_lists:
             row_level_info["previouslySentGroup"] = row[2]
             return cls(row[0], row_level_info)
 
         return cls(row[0], loads(row[1]))
-=======
-        # if we are processing a candidate, we merge in the prevSent indicator to its field dict
-        if row_level_info.get("candidate_name_&_phone") is not None:
-            row_level_info["previouslySentGroup"] = row[2]
-            return cls(row[0], row_level_info)
-
-        # if we process a facility, we proceed as normal, taking the id and fields
-        else:
-            return cls(row[0], loads(row[1]))
->>>>>>> 78228e0f16be85a74933e46747d658e5d0e7135e
 
     def __init__(self, id_: str, fields: dict) -> None:
         self.id_ = id_
@@ -112,15 +101,12 @@ class Data:
             self.__base_id, config.airtable_candidate_tags_table, self.__api_key
         )
 
-<<<<<<< HEAD
     @cached_property
     def google_client(self):
         return pygsheets.client.Client(
             Credentials.from_authorized_user_info(config.google_credentials)
         )
 
-=======
->>>>>>> 78228e0f16be85a74933e46747d658e5d0e7135e
     def fetchall(self, api: Airtable, **kwargs) -> GenAny:
         """Given an airtable api object, generate all of the records in the
         associated table
