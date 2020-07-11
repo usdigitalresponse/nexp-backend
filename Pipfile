@@ -16,6 +16,7 @@ python-dateutil = "*"
 xlsxwriter = "*"
 pygsheets = "*"
 google-auth-oauthlib = "*"
+google-api-core = "*"
 
 [requires]
 python_version = "3.8"
