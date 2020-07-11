@@ -32,6 +32,7 @@ These environment variables are required:
 - `AIRTABLE_BASE_ID`
 - `S3_BUCKET`
 - `S3_PREFIX`
+- `GOOGLE_CREDENTIALS`
 
 These environment variables have default values:
 
