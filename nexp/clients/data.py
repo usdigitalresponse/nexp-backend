@@ -381,16 +381,18 @@ class Data:
 
             ), previously_sent_candidate_ids AS (
 
-               SELECT
-                    candidate_ids.value as c_id
+               SELECT candidate_ids.value as c_id
 
-               FROM tracking t
+                 FROM tracking t
                     , json_each(t.fields, '$.facility' ) facility_id
                     , json_each(t.fields, '$.candidates' ) candidate_ids
 
-               JOIN facilities f
+                 JOIN facilities f
                    ON facility_id.value = f.id
+                  AND f.id = ?
+
             ), needed_candidate_ids AS  (
+
                SELECT DISTINCT
                       c.id,
                       CASE p.c_id WHEN null THEN "No" ELSE "Yes" END previouslySentGroup
@@ -400,10 +402,10 @@ class Data:
                     , json_each(c.fields, "$.regional_availability") r
 
                  JOIN facility_needs f
-                   ON r.value = f.region
-                  AND (    p.value = f.practice_area_1
-                        OR p.value = f.practice_area_2
-                        OR p.value = f.practice_area_3 )
+                   ON trim(lower(r.value)) = trim(lower(f.region))
+                  AND (    trim(lower(p.value)) = trim(lower(f.practice_area_1))
+                        OR trim(lower(p.value)) = trim(lower(f.practice_area_2))
+                        OR trim(lower(p.value)) = trim(lower(f.practice_area_3)) )
                 LEFT JOIN previously_sent_candidate_ids p
                   ON p.c_id = c.id
 
@@ -420,11 +422,10 @@ class Data:
                  FROM candidate_tags t
                     , json_each(t.fields, "$.authorized_facilities") f
                     , json_each(t.fields, "$.candidates") c
-                LEFT JOIN previously_sent_candidate_ids p
-                  ON p.c_id = c.value
+                 LEFT JOIN previously_sent_candidate_ids p
+                   ON p.c_id = c.value
 
                 WHERE f.value = ?
-
             )
             SELECT distinct c.id, c.fields, previouslySentGroup
 
@@ -442,7 +443,7 @@ class Data:
             ;
         """
         return self.__run_select_query(
-            sql, [facility.id_, facility.id_], for_lists=True
+            sql, [facility.id_, facility.id_, facility.id_], for_lists=True
         )
 
     def __get_sheet(self):
